@@ -1,5 +1,3 @@
-import com.sun.corba.se.spi.orbutil.threadpool.Work;
-
 import java.io.*;
 import java.util.StringTokenizer;
 
@@ -8,6 +6,7 @@ public class JobQueue {
     private int[] jobs;
 
     private int[] assignedWorker;
+    private Worker [] assignedWorkers;
     private long[] startTime;
 
     private FastScanner in;
@@ -16,12 +15,12 @@ public class JobQueue {
     private Worker [] workers;
 
     private static class Worker {
+        private long id;
         private long nextFreeTime;
-        private int job;
 
-        public Worker(long nextFreeTime, int job) {
+        public Worker(long id, long nextFreeTime) {
+            this.id = id;
             this.nextFreeTime = nextFreeTime;
-            this.job = job;
         }
     }
 
@@ -34,7 +33,19 @@ public class JobQueue {
     }
 
     public int rightChildIndex(int index) {
-        if (index == 0) return 2; else return 2 * index + 2;
+        if (numWorkers % 2 == 0) return -1;
+        else if (index == 0) return 2;
+        else return 2 * index + 2;
+    }
+
+    public Worker assignJob(long jobTime) {
+        workers[0].nextFreeTime += jobTime;
+        Worker next = new Worker(workers[0].id, workers[0].nextFreeTime);
+        if (workers[leftChildIndex(0)].nextFreeTime < workers[0].nextFreeTime
+                || rightChildIndex(0) != -1 && workers[rightChildIndex(0)].nextFreeTime < workers[0].nextFreeTime) {
+            siftDown(0);
+        }
+        return next;
     }
 
     public void siftUp(int index) {
@@ -54,7 +65,7 @@ public class JobQueue {
             minIndex = leftChildIn;
         }
         int rightChildIn = rightChildIndex(index);
-        if (rightChildIn <= numWorkers && workers[rightChildIn].nextFreeTime < workers[minIndex].nextFreeTime) {
+        if (rightChildIn != -1 && rightChildIn <= numWorkers && workers[rightChildIn].nextFreeTime < workers[minIndex].nextFreeTime) {
             minIndex = rightChildIn;
         }
         if (index != minIndex) {
@@ -62,6 +73,12 @@ public class JobQueue {
             workers[index] = workers[minIndex];
             workers[minIndex] = temp;
             siftDown(minIndex);
+        }
+    }
+
+    private void buildHeap() {
+        for(int i = numWorkers / 2 - 1; i > -1; --i) {
+            siftDown(i);
         }
     }
 
@@ -80,25 +97,26 @@ public class JobQueue {
 
     private void writeResponse() {
         for (int i = 0; i < jobs.length; ++i) {
-            out.println(assignedWorker[i] + " " + startTime[i]);
+            out.println(assignedWorkers[i].id + " " + (assignedWorkers[i].nextFreeTime - jobs[i]));
         }
     }
 
     private void assignJobs() {
-        // TODO: replace this code with a faster algorithm.
-        assignedWorker = new int[jobs.length];
-        startTime = new long[jobs.length];
-        long[] nextFreeTime = new long[numWorkers];
-        for (int i = 0; i < jobs.length; i++) {
-            int duration = jobs[i];
-            int bestWorker = 0;
-            for (int j = 0; j < numWorkers; ++j) {
-                if (nextFreeTime[j] < nextFreeTime[bestWorker])
-                    bestWorker = j;
+        assignedWorkers = new Worker[jobs.length];
+
+        //Initially all threads can take jobs at the same time
+        //Create heap
+        workers = new Worker[numWorkers];
+        for (int i = 0; i < numWorkers; i++) {
+            workers[i] = new Worker(i, jobs[i]);
+            assignedWorkers[i] = new Worker(i, jobs[i]);
+        }
+        buildHeap();
+
+        if (jobs.length > numWorkers) {
+            for (int i = numWorkers; i < jobs.length; ++i) {
+                assignedWorkers[i] = assignJob(jobs[i]);
             }
-            assignedWorker[i] = bestWorker;
-            startTime[i] = nextFreeTime[bestWorker];
-            nextFreeTime[bestWorker] += duration;
         }
     }
 
