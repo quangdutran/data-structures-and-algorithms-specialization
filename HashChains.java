@@ -4,21 +4,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
 
-/*
-Solution using direct addressing scheme
+
+/**
+ * Implement using chaining scheme
  */
 public class HashChains {
 
     private FastScanner in;
     private PrintWriter out;
-    // store all strings in one list
-    private List<String> elems;
     // for hash function
     private int bucketCount;
     private int prime = 1000000007;
     private int multiplier = 263;
 
-    private
+    private List<String> [] listStringArray;
 
     public static void main(String[] args) throws IOException {
         new HashChains().processQueries();
@@ -34,7 +33,7 @@ public class HashChains {
     private Query readQuery() throws IOException {
         String type = in.next();
         if (!type.equals("check")) {
-                String s = in.next();
+            String s = in.next();
             return new Query(type, s);
         } else {
             int ind = in.nextInt();
@@ -49,21 +48,21 @@ public class HashChains {
     }
 
     private void processQuery(Query query) {
+        List<String> chain = query.type.equals("check") ? new ArrayList<>() : listStringArray[hashFunc(query.s)];
         switch (query.type) {
             case "add":
-                if (!elems.contains(query.s))
-                    elems.add(0, query.s);
+                if (!chain.contains(query.s))
+                    chain.add(0, query.s);
                 break;
             case "del":
-                elems.remove(query.s);
+                if (!chain.isEmpty())
+                    chain.remove(query.s);
                 break;
             case "find":
-                writeSearchResult(elems.contains(query.s));
+                writeSearchResult(chain.contains(query.s));
                 break;
             case "check":
-                for (String cur : elems)
-                    if (hashFunc(cur) == query.ind)
-                        out.print(cur + " ");
+                listStringArray[query.ind].forEach(i -> out.print(i + " "));
                 out.println();
                 // Uncomment the following if you want to play with the program interactively.
                 // out.flush();
@@ -74,10 +73,13 @@ public class HashChains {
     }
 
     public void processQueries() throws IOException {
-        elems = new ArrayList<>();
         in = new FastScanner();
         out = new PrintWriter(new BufferedOutputStream(System.out));
         bucketCount = in.nextInt();
+        listStringArray = new List[bucketCount];
+        for (int i = 0; i < listStringArray.length; i++) {
+            listStringArray[i] = new ArrayList<>();
+        }
         int queryCount = in.nextInt();
         for (int i = 0; i < queryCount; ++i) {
             processQuery(readQuery());
