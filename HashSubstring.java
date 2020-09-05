@@ -22,10 +22,10 @@ public class HashSubstring {
 
     private static long [] preComputeHashes(String text, int lengthPattern) {
         long [] result = new long [text.length() - lengthPattern + 1];
-        String lastPiece = text.substring(text.length() - lengthPattern, text.length() - 1);
+        String lastPiece = text.substring(text.length() - lengthPattern);
         result[text.length() - lengthPattern] = polyHash(lastPiece);
         long y = 1;
-        for (int i = 0; i <= lengthPattern; i++) {
+        for (int i = 1; i <= lengthPattern; i++) {
             y = (y * multiplier) % prime;
         }
         for (int i = text.length() - lengthPattern - 1; i >= 0; i--) {
@@ -42,7 +42,7 @@ public class HashSubstring {
         for (int i = 0; i <= text.length() - pattern.length(); i++) {
             if (patternHash != preComputeHashes[i])
                 continue;
-            if (text.substring(i, i + pattern.length()).equals(pattern)) {
+            if (text.substring(i, i + pattern.length() + 1).equals(pattern)) {
                 result.add(i);
             }
         }
@@ -70,8 +70,8 @@ public class HashSubstring {
     }
 
     private static List<Integer> getOccurrences(Data input) {
-        String s = input.pattern, t = input.text;
-        return rabinKarp(s, t);
+        String pattern = input.pattern, text = input.text;
+        return rabinKarp(text, pattern);
     }
 
     static class Data {
